@@ -1,0 +1,18 @@
+pygame==2.5.2
+
+# AI/ML Libraries
+tensorflow==2.15.0
+keras==2.15.0
+numpy==1.24.3
+
+# Data Processing
+pandas==2.1.0
+
+# Visualization
+matplotlib==3.8.0
+
+# Progress Bar
+tqdm==4.66.0
+
+# Model Serialization
+h5py==3.10.0
