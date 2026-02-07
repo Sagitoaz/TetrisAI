@@ -96,7 +96,7 @@ def main():
     print("="*70)
     
     # Check if model exists
-    model_file = f"{args.model_path}_model.h5"
+    model_file = f"{args.model_path}_model.weights.h5"
     if not os.path.exists(model_file):
         print(f"\n❌ Error: Model file not found: {model_file}")
         print("   Please provide the correct model path (prefix without extensions)")

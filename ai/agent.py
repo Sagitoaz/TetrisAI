@@ -278,8 +278,8 @@ class DQNAgent:
         os.makedirs(os.path.dirname(filepath_prefix), exist_ok=True)
         
         # Save models
-        self.model.save(f"{filepath_prefix}_model.h5")
-        self.target_model.save(f"{filepath_prefix}_target.h5")
+        self.model.save(f"{filepath_prefix}_model.weights.h5")
+        self.target_model.save(f"{filepath_prefix}_target.weights.h5")
         
         # Save memory
         self.memory.save(f"{filepath_prefix}_memory.pkl")
@@ -305,8 +305,8 @@ class DQNAgent:
             filepath_prefix: Prefix for load files
         """
         # Load models
-        self.model.load(f"{filepath_prefix}_model.h5")
-        self.target_model.load(f"{filepath_prefix}_target.h5")
+        self.model.load(f"{filepath_prefix}_model.weights.h5")
+        self.target_model.load(f"{filepath_prefix}_target.weights.h5")
         
         # Load memory
         self.memory.load(f"{filepath_prefix}_memory.pkl")
