@@ -188,8 +188,8 @@ class TetrisEnvironment:
             self._count_holes() / (GRID_WIDTH * GRID_HEIGHT), # Normalized holes
             self._calculate_bumpiness() / GRID_HEIGHT,        # Normalized bumpiness
             self._count_complete_lines() / GRID_HEIGHT,       # Normalized complete lines
-            self.game.current_piece.type / 7,                 # Current piece type (normalized)
-            self.game.next_piece.type / 7,                    # Next piece type (normalized)
+            self.game.current_piece.shape_idx / 7,            # Current piece type (normalized)
+            self.game.next_piece.shape_idx / 7,               # Next piece type (normalized)
             self.game.lines_cleared / 100                     # Normalized lines cleared
         ]
         

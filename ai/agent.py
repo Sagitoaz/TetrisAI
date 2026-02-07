@@ -157,12 +157,12 @@ class DQNAgent:
             learning_rate=self.config['learning_rate']
         )
         
-        # Copy weights to target network
-        self.update_target_model()
-        
         # Training statistics
         self.episode_count = 0
         self.training_step = 0
+        
+        # Copy weights to target network
+        self.update_target_model()
     
     def update_target_model(self):
         """
