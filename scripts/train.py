@@ -1,194 +1,147 @@
 """
 Training Script for Tetris AI
-Main entry point for training the DQN agent
+Simple and effective training loop
 """
-
-import os
 import sys
-import argparse
-
+import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ai.agent import DQNAgent
-from ai.environment import TetrisEnvironment
-from ai.trainer import Trainer
+from ai.environment import Tetris
+from datetime import datetime
+from statistics import mean
+from tqdm import tqdm
 
 
-def parse_args():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description='Train Tetris AI using DQN')
+def train():
+    """Train Tetris AI with DQN"""
     
-    # Training parameters
-    parser.add_argument('--episodes', type=int, default=10000,
-                       help='Number of training episodes (default: 10000)')
-    parser.add_argument('--name', type=str, default=None,
-                       help='Experiment name (default: auto-generated)')
+    # ====================
+    # TRAINING CONFIGURATION
+    # ====================
+    episodes = 10000                 # Total episodes to train
+    max_steps = None                # Max steps per episode (None = until game over)
+    epsilon_stop_episode = 2000     # Stop exploration decay at this episode
+    mem_size = 200000                # Replay memory size
+    discount = 0.95                 # Discount factor (gamma)
+    batch_size = 512                # Training batch size
+    epochs = 1                      # Epochs per training step
+    train_every = 1                 # Train every N episodes
+    log_every = 50                  # Log stats every N episodes
+    save_best_model = True          # Save best model
+    n_neurons = [32, 32]            # Network architecture
+    activations = ['relu', 'relu', 'linear']  # Activations
+    replay_start_size = 2000        # Min replay size before training
     
-    # Agent parameters
-    parser.add_argument('--lr', type=float, default=0.001,
-                       help='Learning rate (default: 0.001)')
-    parser.add_argument('--gamma', type=float, default=0.95,
-                       help='Discount factor (default: 0.95)')
-    parser.add_argument('--epsilon', type=float, default=1.0,
-                       help='Initial exploration rate (default: 1.0)')
-    parser.add_argument('--epsilon-min', type=float, default=0.01,
-                       help='Minimum exploration rate (default: 0.01)')
-    parser.add_argument('--epsilon-decay', type=float, default=0.995,
-                       help='Exploration decay rate (default: 0.995)')
-    parser.add_argument('--batch-size', type=int, default=64,
-                       help='Training batch size (default: 64)')
-    parser.add_argument('--memory', type=int, default=100000,
-                       help='Replay memory capacity (default: 100000)')
+    # ====================
+    # SETUP
+    # ====================
+    print("="*60)
+    print("TETRIS AI - DQN TRAINING")
+    print("="*60)
+    print(f"Episodes: {episodes}")
+    print(f"Memory size: {mem_size}")
+    print(f"Batch size: {batch_size}")
+    print(f"Network: {n_neurons}")
+    print(f"Replay start: {replay_start_size}")
+    print("="*60)
     
-    # Checkpoint parameters
-    parser.add_argument('--checkpoint-freq', type=int, default=100,
-                       help='Save checkpoint every N episodes (default: 100)')
-    parser.add_argument('--eval-freq', type=int, default=50,
-                       help='Evaluate every N episodes (default: 50)')
-    parser.add_argument('--resume', type=str, default=None,
-                       help='Path to checkpoint to resume training from')
-    
-    # Config presets
-    parser.add_argument('--config', type=str, choices=['exploration', 'exploitation', 'balanced'],
-                       help='Use predefined configuration preset')
-    
-    return parser.parse_args()
-
-
-def get_config_preset(preset_name):
-    """
-    Get predefined configuration presets
-    
-    Args:
-        preset_name: Name of preset ('exploration', 'exploitation', 'balanced')
-        
-    Returns:
-        Configuration dictionary
-    """
-    presets = {
-        'exploration': {
-            'epsilon': 1.0,
-            'epsilon_min': 0.1,
-            'epsilon_decay': 0.9995,  # Slow decay - more exploration
-            'learning_rate': 0.001,
-            'gamma': 0.95,
-            'batch_size': 64,
-            'description': 'High exploration for diverse experience collection'
-        },
-        'exploitation': {
-            'epsilon': 0.5,
-            'epsilon_min': 0.01,
-            'epsilon_decay': 0.995,   # Fast decay - quick exploitation
-            'learning_rate': 0.0005,
-            'gamma': 0.98,
-            'batch_size': 128,
-            'description': 'Low exploration for refined learning'
-        },
-        'balanced': {
-            'epsilon': 1.0,
-            'epsilon_min': 0.05,
-            'epsilon_decay': 0.997,   # Balanced decay
-            'learning_rate': 0.001,
-            'gamma': 0.95,
-            'batch_size': 64,
-            'description': 'Balanced exploration and exploitation'
-        }
-    }
-    
-    return presets.get(preset_name, {})
-
-
-def main():
-    """Main training function"""
-    args = parse_args()
-    
-    print("\n" + "="*70)
-    print("🎮 TETRIS AI - DEEP Q-NETWORK TRAINING")
-    print("="*70)
-    
-    # Create environment
-    print("\n📦 Creating environment...")
-    env = TetrisEnvironment(render=False)
-    print(f"   State size: {env.state_size}")
-    print(f"   Action size: {env.action_size}")
-    
-    # Configure agent
-    agent_config = {
-        'learning_rate': args.lr,
-        'gamma': args.gamma,
-        'epsilon': args.epsilon,
-        'epsilon_min': args.epsilon_min,
-        'epsilon_decay': args.epsilon_decay,
-        'memory_capacity': args.memory,
-        'batch_size': args.batch_size,
-        'target_update_freq': 10
-    }
-    
-    # Apply preset if specified
-    if args.config:
-        print(f"\n⚙️  Using '{args.config}' configuration preset")
-        preset = get_config_preset(args.config)
-        print(f"   {preset.get('description', '')}")
-        
-        # Update agent config with preset values
-        agent_config.update({
-            'learning_rate': preset.get('learning_rate', args.lr),
-            'gamma': preset.get('gamma', args.gamma),
-            'epsilon': preset.get('epsilon', args.epsilon),
-            'epsilon_min': preset.get('epsilon_min', args.epsilon_min),
-            'epsilon_decay': preset.get('epsilon_decay', args.epsilon_decay),
-            'batch_size': preset.get('batch_size', args.batch_size)
-        })
-    
-    # Create agent
-    print("\n🤖 Creating DQN agent...")
+    # Create environment and agent
+    env = Tetris()
     agent = DQNAgent(
-        state_size=env.state_size,
-        action_size=env.action_size,
-        config=agent_config
+        state_size=env.get_state_size(),
+        n_neurons=n_neurons,
+        activations=activations,
+        epsilon_stop_episode=epsilon_stop_episode,
+        mem_size=mem_size,
+        discount=discount,
+        replay_start_size=replay_start_size
     )
     
-    print(f"   Learning rate: {agent_config['learning_rate']}")
-    print(f"   Gamma: {agent_config['gamma']}")
-    print(f"   Epsilon: {agent_config['epsilon']} → {agent_config['epsilon_min']}")
-    print(f"   Epsilon decay: {agent_config['epsilon_decay']}")
-    print(f"   Batch size: {agent_config['batch_size']}")
-    print(f"   Memory capacity: {agent_config['memory_capacity']}")
+    # Tracking
+    scores = []
+    lines_cleared_list = []
+    best_score = 0
+    best_lines = 0
     
-    # Configure trainer
-    trainer_config = {
-        'num_episodes': args.episodes,
-        'checkpoint_freq': args.checkpoint_freq,
-        'eval_freq': args.eval_freq,
-        'experiment_name': args.name or f"{args.config or 'default'}_{args.episodes}ep"
-    }
+    # Training loop
+    print("\nStarting training...\n")
     
-    print("\n🎯 Creating trainer...")
-    trainer = Trainer(agent, env, trainer_config)
-    print(f"   Episodes: {trainer_config['num_episodes']}")
-    print(f"   Checkpoint frequency: {trainer_config['checkpoint_freq']}")
-    print(f"   Evaluation frequency: {trainer_config['eval_freq']}")
-    print(f"   Experiment name: {trainer_config['experiment_name']}")
+    for episode in tqdm(range(episodes)):
+        current_state = env.reset()
+        done = False
+        steps = 0
+        
+        # Play episode
+        while not done and (not max_steps or steps < max_steps):
+            # Get all possible next states
+            next_states = env.get_next_states()
+            
+            # Convert to state vectors
+            state_dict = {tuple(v): k for k, v in next_states.items()}
+            
+            # Agent selects best state
+            best_state = agent.best_state(state_dict.keys())
+            best_action = state_dict[best_state]
+            
+            # Execute action
+            reward, done = env.play(best_action[0], best_action[1])
+            
+            # Store experience
+            agent.add_to_memory(current_state, best_state, reward, done)
+            current_state = best_state
+            steps += 1
+        
+        # Track stats
+        scores.append(env.get_game_score())
+        lines_cleared_list.append(env.lines_cleared)
+        
+        # Train agent
+        if episode % train_every == 0:
+            agent.train(batch_size=batch_size, epochs=epochs)
+        
+        # Log progress
+        if log_every and episode and episode % log_every == 0:
+            avg_score = mean(scores[-log_every:])
+            min_score = min(scores[-log_every:])
+            max_score = max(scores[-log_every:])
+            avg_lines = mean(lines_cleared_list[-log_every:])
+            
+            print(f"\nEpisode {episode}/{episodes}")
+            print(f"  Avg Score: {avg_score:.1f} (min={min_score}, max={max_score})")
+            print(f"  Avg Lines: {avg_lines:.1f}")
+            print(f"  Epsilon: {agent.epsilon:.3f}")
+            print(f"  Memory: {len(agent.memory)}/{agent.mem_size}")
+        
+        # Save best model
+        if save_best_model:
+            if env.get_game_score() > best_score:
+                best_score = env.get_game_score()
+                os.makedirs('models', exist_ok=True)
+                agent.save_model('models/best_score.keras')
+                print(f"\n✓ New best score: {best_score} (episode {episode})")
+            
+            if env.lines_cleared > best_lines:
+                best_lines = env.lines_cleared
+                os.makedirs('models', exist_ok=True)
+                agent.save_model('models/best_lines.keras')
+                print(f"\n✓ New best lines: {best_lines} (episode {episode})")
     
-    # Print model summary
-    print("\n📊 Model Architecture:")
-    agent.model.summary()
+    # Training complete
+    print("\n" + "="*60)
+    print("TRAINING COMPLETE!")
+    print("="*60)
+    print(f"Best Score: {best_score}")
+    print(f"Best Lines: {best_lines}")
+    print(f"Final Epsilon: {agent.epsilon:.3f}")
+    print("="*60)
     
-    # Start training
-    print("\n" + "="*70)
-    print("🚀 STARTING TRAINING")
-    print("="*70)
-    print("   Press Ctrl+C to stop training and save progress")
-    print("="*70 + "\n")
-    
-    trainer.train(resume_from=args.resume)
-    
-    # Cleanup
-    env.close()
-    
-    print("\n✅ Training completed successfully!")
+    # Save final model
+    os.makedirs('models', exist_ok=True)
+    agent.save_model('models/final.keras')
+    print("\n✓ Saved final model to models/final.keras")
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    train()

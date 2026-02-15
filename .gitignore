@@ -9,72 +9,120 @@ __pycache__/
 *.so
 .Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 .venv/
 venv/
 ENV/
 env/
+virtualenv/
 
-# IDE
+# IDE & Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.cursorignore
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
 
-# Training Outputs (LARGE FILES)
-models/*/
-!models/.gitkeep
-logs/*/
-!logs/.gitkeep
-data/*/
-!data/.gitkeep
+# Python cache
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# Model Files (TOO LARGE FOR GIT)
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-*.pth
-*.weights
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
-# Training Logs
-*.csv
-*.log
-tensorboard/
-wandb/
+# Environment variables
+.env
+.env.local
 
 # OS Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
+# Training Logs & Checkpoints
+logs/
+tensorboard/
+wandb/
+*.log
+*.csv
 
-# Plots & Images (except docs)
-*.png
-*.jpg
-*.jpeg
-!docs/*.png
+# Large model files (uncomment if models are too large)
+# If your models are >100MB, consider using Git LFS or keep them local
+# models/*.keras
+# models/*.h5
+# models/*.hdf5
 
-# Temporary Files
-*.tmp
-*.bak
-*.swp
+# Other model formats
+*.pkl
+*.pickle
+*.pth
+*.pt
+*.onnx
+*.pb
+*.weights
 
-# Game Recordings
+# Training data (if large datasets)
+data/raw/
+data/processed/
+*.npy
+*.npz
+
+# Plots & visualizations (optional - uncomment if you don't want to track)
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+
+# Game recordings & videos
 replays/
 recordings/
-*.replay
 videos/
 *.mp4
 *.avi
-*.gif
+*.mov
+*.replay
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# Documentation build
+docs/_build/
+docs/.doctrees/

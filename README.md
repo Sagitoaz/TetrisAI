@@ -1,217 +1,135 @@
-# 🎮 TetrisAI - Deep Q-Network Implementation
+# Tetris AI - Deep Q-Learning
 
-AI chơi Tetris sử dụng Deep Q-Network (DQN) - Reinforcement Learning.
+Tetris AI using Deep Q-Network (DQN) with value-based learning approach.
 
----
+## 🎮 Features
 
-## 📁 Cấu Trúc Dự Án
+- **Value-Based DQN**: Agent evaluates state values instead of action Q-values
+- **Smart State Space**: Agent considers all possible placements for each piece
+- **Experience Replay**: Learns from past experiences
+- **Epsilon-Greedy Exploration**: Balances exploration vs exploitation
+
+## 📁 Project Structure
 
 ```
 TetrisAI/
-├── 📚 docs/                     # Documentation
-│   ├── TRAINING_GUIDE.md        # Hướng dẫn training chi tiết
-│   ├── WORK_DIVISION.md         # Phân công 2 người
-│   ├── TESTING.md               # Hướng dẫn test
-│   ├── ROADMAP.md               # Project roadmap
-│   └── PROJECT_STRUCTURE.md     # Tổng quan cấu trúc
-│
-├── 🤖 ai/                       # Core AI Code
-│   ├── model.py                 # Neural Network (DQN)
-│   ├── agent.py                 # DQN Agent (Q-learning)
-│   ├── environment.py           # Game wrapper cho AI
-│   ├── trainer.py               # Training infrastructure
-│   └── utils.py                 # Utilities (merge, analyze, plot)
-│
-├── 🎮 src/                      # Tetris Game Source
-│   ├── game.py                  # Game logic
-│   ├── shapes.py                # Tetromino shapes
-│   ├── tetromino.py             # Tetromino class
-│   ├── config.py                # Game configuration
-│   └── main.py                  # Game entry point
-│
-├── 🚀 scripts/                  # Executable Scripts
-│   ├── train.py                 # Training script
-│   ├── play_ai.py               # Test AI
-│   ├── train_final.py           # Final training (merged)
-│   └── test_setup.py            # Setup verification
-│
-├── 💾 models/                   # Trained models (generated)
-├── 📊 logs/                     # Training logs (generated)
-├── 📁 data/                     # Training data (generated)
-│
-├── README.md                    # File này
-└── requirements.txt             # Python dependencies
+├── src/                    # Pygame game engine (core logic)
+│   ├── game.py            # Main game logic
+│   ├── tetromino.py       # Tetris pieces
+│   ├── config.py          # Game configuration
+│   └── shapes.py          # Piece shapes
+├── ai/                     # AI training code
+│   ├── environment.py     # Tetris environment wrapper
+│   └── agent.py           # DQN agent
+├── scripts/                # Training and play scripts
+│   ├── train.py           # Training script
+│   └── play.py            # Play with trained model
+└── models/                 # Saved models (created during training)
 ```
-
----
 
 ## 🚀 Quick Start
 
-### 1. Cài Đặt
+### 1. Install Dependencies
 
-```powershell
-# Activate virtual environment
-cd E:\WINDOW\BTL\TetrisAI
-.\.venv\Scripts\Activate.ps1
-
-# Install dependencies
+```bash
 pip install -r requirements.txt
-
-# Verify installation
-python scripts\test_setup.py
 ```
 
-### 2. Training
+### 2. Train the AI
 
-**Person A - Exploration:**
-```powershell
-python scripts\train.py --config exploration --episodes 10000 --name person_a_exploration
+```bash
+python scripts/train.py
 ```
 
-**Person B - Exploitation:**
-```powershell
-python scripts\train.py --config exploitation --episodes 10000 --name person_b_exploitation
+Training configuration (edit `scripts/train.py`):
+- Episodes: 2000
+- Memory size: 20000
+- Batch size: 512
+- Network: [32, 32]
+
+### 3. Watch the AI Play
+
+```bash
+python scripts/play.py
 ```
 
-### 3. Testing
-
-```powershell
-# Test trained AI
-python scripts\play_ai.py models\person_a_exploration\best_model --episodes 5
-
-# Analyze results
-python ai\utils.py analyze logs\person_a_exploration\training_log.csv
+Optional arguments:
+```bash
+python scripts/play.py --model models/best_lines.keras --episodes 5 --delay 0.1
 ```
 
-### 4. Merge & Final Training
+## 🧠 How It Works
 
-```powershell
-# Merge memories
-python ai\utils.py merge `
-    models\person_a_exploration\best_model_memory.pkl `
-    models\person_b_exploitation\best_model_memory.pkl `
-    data\merged_memory.pkl
+### Value-Based Approach
 
-# Train final model
-python scripts\train_final.py --memory-file data\merged_memory.pkl --episodes 3000
-```
+Instead of learning Q(state, action), the agent learns V(state) directly:
 
----
+1. **For each piece**: Generate all possible final states (all rotations × all columns)
+2. **Agent evaluates**: Predict value of each state using neural network
+3. **Select best**: Choose state with highest predicted value
+4. **Execute**: Place piece at that position
+5. **Learn**: Update network based on actual reward received
 
-## 🎯 AI Architecture
+### State Representation
 
-### DQN Components
-
-- **Neural Network:** 3 hidden layers (256-256-128)
-- **Input:** 207 features (grid 20×10 + game state)
-- **Output:** 7 Q-values (actions: left, right, rotate, drop...)
-- **Training:** Experience Replay + Target Network
-- **Exploration:** Epsilon-greedy (1.0 → 0.01)
+Each state is represented by 4 features:
+- **Lines cleared**: Number of lines cleared
+- **Holes**: Empty cells with blocks above them
+- **Bumpiness**: Height variation between adjacent columns
+- **Aggregate height**: Sum of all column heights
 
 ### Reward Function
 
+- **Place piece**: +1
+- **Clear lines**: +(lines² × 10)
+  - 1 line: +10
+  - 2 lines: +40
+  - 3 lines: +90
+  - 4 lines: +160
+- **Game over**: -2
+
+## 📊 Training Progress
+
+Models are saved in `models/`:
+- `best_score.keras`: Model with highest score
+- `best_lines.keras`: Model that cleared most lines
+- `final.keras`: Final model after all training
+
+## 🎯 Expected Results
+
+After 2000 episodes:
+- Average lines cleared: 50-100+ per game
+- Best lines cleared: 200+
+- Consistent gameplay without game overs
+
+## 🔧 Hyperparameter Tuning
+
+Key parameters in `scripts/train.py`:
+
 ```python
-+ Lines cleared: 40/100/300/1200 (single/double/triple/tetris)
-+ Score increase: score_diff × 0.1
-- Height increase: height_diff × 2
-- Holes created: holes_created × 10
-- Game over: -500
+episodes = 2000              # More episodes = better learning
+mem_size = 20000             # Larger = more diverse training
+batch_size = 512             # Balance between speed and stability
+epsilon_stop_episode = 1500  # When to stop exploring
+discount = 0.95              # How much to value future rewards
+n_neurons = [32, 32]         # Network size
 ```
 
----
+## 📝 Notes
 
-## 📖 Tài Liệu
+- Training takes ~30-60 minutes for 2000 episodes (on average CPU)
+- GPU acceleration supported via TensorFlow
+- Model saves automatically when new best is achieved
+- Progress displayed every 50 episodes
 
-| File | Mục Đích |
-|------|----------|
-| **[TRAINING_GUIDE.md](TRAINING_GUIDE.md)** | Hướng dẫn chi tiết training |
-| **[WORK_DIVISION.md](WORK_DIVISION.md)** | Phân công công việc 2 người |
-| **[TESTING.md](TESTING.md)** | Hướng dẫn test models |
-| **[ROADMAP.md](ROADMAP.md)** | Roadmap dự án |
+## 🎓 Algorithm
 
----
+DQN with:
+- Experience replay buffer
+- Epsilon-greedy exploration
+- Bellman equation: Q = reward + γ × V(next_state)
+- Adam optimizer with MSE loss
 
-## 🎓 Commands Cheat Sheet
+## 🙏 Credits
 
-| Task | Command |
-|------|---------|
-| **Setup** | `.\.venv\Scripts\Activate.ps1` |
-| **Install** | `pip install -r TetrisAI\requirements.txt` |
-| **Verify** | `python test_setup.py` |
-| **Train A** | `python train.py --config exploration --episodes 10000 --name person_a` |
-| **Train B** | `python train.py --config exploitation --episodes 10000 --name person_b` |
-| **Test** | `python play_ai.py models\<name>\best_model --episodes 5` |
-| **Resume** | `python train.py --resume models\<name>\checkpoints\checkpoint_XXXXX` |
-| **Merge** | `python ai\utils.py merge mem1.pkl mem2.pkl output.pkl` |
-| **Analyze** | `python ai\utils.py analyze logs\<name>\training_log.csv` |
-| **Plot** | `python ai\utils.py plot logs\<name>\training_log.csv` |
-
----
-
-## 🔧 Config Presets
-
-| Preset | Person | Epsilon | Decay | Goal |
-|--------|--------|---------|-------|------|
-| **exploration** | A | 1.0 → 0.1 | 0.9995 (slow) | Diverse experiences |
-| **exploitation** | B | 0.5 → 0.01 | 0.995 (fast) | Refined strategies |
-| **balanced** | Final | 1.0 → 0.05 | 0.997 (medium) | Best performance |
-
----
-
-## 📊 Expected Results
-
-| Metric | Person A | Person B | Final Model |
-|--------|----------|----------|-------------|
-| Episodes | 10,000 | 10,000 | 3,000 |
-| Training Time | 36-48h | 36-48h | 12-24h |
-| Avg Score | 500-1500 | 800-2000 | 1000-3000+ |
-| Avg Lines | 10-30 | 15-40 | 20-50+ |
-| Memory Size | ~100K | ~100K | ~200K |
-
----
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Module not found | Activate venv: `.\.venv\Scripts\Activate.ps1` |
-| Out of memory | Add: `--batch-size 32 --memory 50000` |
-| Training too slow | Normal with CPU, reduce episodes or wait |
-| Can't activate venv | `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
-| Training crashed | Resume: `--resume checkpoint_path` |
-
----
-
-## 📦 Dependencies
-
-```
-tensorflow==2.15.0
-keras==2.15.0
-numpy==1.24.3
-pygame==2.5.2
-matplotlib==3.8.0
-pandas==2.1.0
-tqdm==4.66.0
-h5py==3.10.0
-```
-
----
-
-## 👥 Workflow (2 Người)
-
-1. **Setup:** Cả 2 cài đặt môi trường
-2. **Training:** Person A & B train parallel (36-48h)
-3. **Share:** Upload `best_model_memory.pkl` lên shared folder
-4. **Merge:** Một người merge memories
-5. **Final:** Train final model (12-24h)
-6. **Test:** So sánh performance
-
----
-
-## 📝 License
-
-Educational project - TetrisAI Team 2026
-
----
-
-**🚀 Ready to train? Check [TRAINING_GUIDE.md](TRAINING_GUIDE.md)!**
+Inspired by classical Tetris AI techniques and modern deep RL approaches.
